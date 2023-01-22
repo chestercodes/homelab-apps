@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-production
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/chestercodes/homelab-apps.git
+        revision: HEAD
+        files:
+          - path: apps/production/manifests/production.json
+  template:
+    metadata:
+      name: "production-apps"
+    spec:
+      project: production
+      source:
+        repoURL: https://github.com/chestercodes/homelab-apps.git
+        targetRevision: HEAD
+        path: apps/production
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: production
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-staging
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/chestercodes/homelab-apps.git
+        revision: HEAD
+        files:
+          - path: apps/staging/manifests/*.json
+  template:
+    metadata:
+      name: "{{envname}}-apps"
+    spec:
+      project: staging
+      source:
+        repoURL: https://github.com/chestercodes/homelab-apps.git
+        targetRevision: HEAD
+        path: apps/staging
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{envname}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+---
+

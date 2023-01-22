@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: homelabping-ingress
+  namespace: production
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`changeme.mypersonaltld.com`)
+      priority: 10
+      services:
+        - name: homelabping-service
+          namespace: production
+          kind: TraefikService

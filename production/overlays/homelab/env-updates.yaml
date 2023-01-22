@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-pipeline
+  namespace: argocd
+spec:
+  source:
+    path: pipeline/overlays/homelab
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps-cloudflared-tunnel
+  namespace: argocd
+spec:
+  source:
+    path: cloudflared-tunnel/overlays/homelab
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-production
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/chestercodes/homelab-apps.git
+        revision: HEAD
+        files:
+          - path: apps/production/manifests/production.json
+  template:
+    spec:
+      source:
+        helm:
+          valueFiles:
+            - "manifests/production.json"
+            - "homelab.yaml"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps-staging
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/chestercodes/homelab-apps.git
+        revision: HEAD
+        files:
+          - path: apps/staging/manifests/*.json
+  template:
+    spec:
+      source:
+        helm:
+          valueFiles:
+            - "manifests/{{envname}}.json"
+            - "homelab.yaml"

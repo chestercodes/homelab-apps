@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: workflow-reporter
+spec:
+  template:
+    serviceAccountName: argo-events-sa
+  dependencies:
+    - name: github
+      eventSourceName: github
+      eventName: homelab-apps
+      filters:
+        data:
+          - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
+            type: string
+            value:
+              - "workflow-reporter/.*"
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/main"
+  entrypoint: trigger
+  triggers:
+    - template:
+        name: trigger
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: ci-workflow-reporter-
+              spec:
+                arguments:
+                  parameters:
+                    - name: repo
+                      value: github.com/chestercodes/homelab-apps
+                    - name: container_image
+                      value: workflow-reporter
+                    - name: container_tag
+                      value: "latest"
+                    - name: context_sub_path
+                      value: workflow-reporter
+                    - name: target
+                      value: runtime
+                workflowTemplateRef:
+                  name: build-container-image

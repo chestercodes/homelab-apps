@@ -1,0 +1,107 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: deploy-common
+spec:
+  serviceAccountName: workflow-sa
+  templates:
+
+    - name: submittoworkflowreporter
+      inputs:
+        parameters:
+          - name: workflow_name
+          - name: workflow_apps
+            value: '["homelabping", "homelabmaindbcluster", "homelabmaindbexporter"]'
+      container:
+        image: curlimages/curl
+        command:
+          - "sh"
+          - "-c"
+          - |
+            curl -X POST http://workflow-reporter.pipeline.svc.cluster.local:80/workflow/submit -H "Content-Type: application/json" -d '{ "WorkflowName": "{{inputs.parameters.workflow_name}}", "Apps": {{inputs.parameters.workflow_apps}} }'
+
+    - name: run-maindb-migrations
+      inputs:
+        parameters:
+          - name: pipeline_image
+          - name: envname
+            value: staging
+          - name: clustertype
+            value: homelab
+      script:
+        image: "registry.mypersonaltld.com/{{inputs.parameters.pipeline_image}}"
+        command: ["pwsh", "-file", "/work/run.ps1", "-Migrations"]
+        env:
+          - name: ENVNAME
+            value: "{{inputs.parameters.envname}}"
+          - name: MAINDB_USER
+            value: migrations
+          # needs to match value in homelabmaindb-secret.yaml
+          - name: MAINDB_PASSWORD
+            value: password2
+
+    - name: run-maindb-migrations-production
+      inputs:
+        parameters:
+          - name: pipeline_image
+          - name: envname
+            value: staging
+          - name: clustertype
+            value: homelab
+      script:
+        image: "registry.mypersonaltld.com/{{inputs.parameters.pipeline_image}}"
+        command: ["pwsh", "-file", "/work/run.ps1", "-Migrations"]
+        env:
+          - name: ENVNAME
+            value: "{{inputs.parameters.envname}}"
+          - name: MAINDB_USER
+            value: migrations
+          - name: MAINDB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: maindb-postgresql
+                key: migrations-password
+
+
+    - name: run-functional-tests
+      inputs:
+        parameters:
+          - name: pipeline_image
+          - name: envname
+            value: staging
+          - name: clustertype
+            value: homelab
+      script:
+        image: "registry.mypersonaltld.com/{{inputs.parameters.pipeline_image}}"
+        command: ["pwsh", "-file", "/work/run.ps1", "-FunctionalTests"]
+        env:
+          - name: ENVNAME
+            value: "{{inputs.parameters.envname}}"
+
+    - name: wait-completion
+      inputs:
+      parameters: []
+      suspend: {}
+
+    - name: getdeployworkflowargs
+      inputs:
+        parameters:
+          - name: commit_id
+          - name: commit_message
+          - name: code_image
+          - name: pipeline_image
+          - name: app_name
+          - name: staging_version
+      container:
+        image: busybox
+        command:
+          - "sh"
+          - "-c"
+          - |
+            APPNAME="app_name={{inputs.parameters.app_name}}"
+            CODE_IMAGE="code_image={{inputs.parameters.code_image}}"
+            PIPELINE_IMAGE="pipeline_image={{inputs.parameters.pipeline_image}}"
+            DEPLOY_REVISION="deploy_revision={{inputs.parameters.commit_id}}"
+            COMMIT_MESSAGE="commit_message={{inputs.parameters.commit_message}}"
+            STAGING_VERSION="staging_version={{inputs.parameters.staging_version}}"
+            echo "[ \"$APPNAME\", \"$CODE_IMAGE\", \"$PIPELINE_IMAGE\", \"$DEPLOY_REVISION\", \"$COMMIT_MESSAGE\", \"$STAGING_VERSION\" ]"

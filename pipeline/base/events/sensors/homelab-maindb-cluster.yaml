@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: homelab-maindb-cluster-sensor
+spec:
+  template:
+    serviceAccountName: argo-events-sa
+  dependencies:
+    - name: github
+      eventSourceName: github
+      eventName: homelab-maindb
+      filters:
+        data:
+          - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
+            type: string
+            value:
+              - "cluster/.*"
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/main"
+  entrypoint: trigger
+  triggers:
+    - template:
+        name: trigger
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: ci-homelabmaindbcluster-
+              spec:
+                arguments:
+                  parameters:
+                    - name: commit_id
+                      value: replace_me
+                    - name: commit_message
+                      value: replace_me
+                    - name: app_name
+                      value: homelabmaindbcluster
+                    - name: repo
+                      value: github.com/chestercodes/homelab-maindb
+                    - name: pipeline_image_name
+                      value: pipeline/homelabmaindbcluster
+                    - name: pipeline_context_sub_path
+                      value: cluster
+                workflowTemplateRef:
+                  name: build-just-pipeline
+          parameters:
+            - src:
+                dependencyName: github
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: github
+                dataKey: body.head_commit.message
+              dest: spec.arguments.parameters.1.value

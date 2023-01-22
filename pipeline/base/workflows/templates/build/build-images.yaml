@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: build-images
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: first-then-second
+  templates:
+    - name: first-then-second
+      inputs:
+        parameters:
+          - name: repo
+          - name: first_image
+          - name: second_image
+          - name: first_context_sub_path
+            value: "."
+          - name: second_context_sub_path
+            value: "."
+          - name: repo_ref
+            value: refs/heads/main
+          - name: first_dockerfile
+            value: Dockerfile
+          - name: second_dockerfile
+            value: Dockerfile
+          - name: first_target
+            value: runtime
+          - name: second_target
+            value: pipeline
+          - name: first_image_tag
+            value: "1"
+          - name: second_image_tag
+            value: "1"
+
+      steps:
+        - - name: push-first-image
+            templateRef:
+              name: build-container-image
+              template: build
+            arguments:
+              parameters:
+                - name: repo
+                  value: "{{inputs.parameters.repo}}"
+                - name: repo_ref
+                  value: "{{inputs.parameters.repo_ref}}"
+                - name: context_sub_path
+                  value: "{{inputs.parameters.first_context_sub_path}}"
+                - name: container_image
+                  value: "{{inputs.parameters.first_image}}"
+                - name: container_tag
+                  value: "{{inputs.parameters.first_image_tag}}"
+                - name: target
+                  value: "{{inputs.parameters.first_target}}"
+                - name: dockerfile
+                  value: "{{inputs.parameters.first_dockerfile}}"
+
+        - - name: push-second-image
+            templateRef:
+              name: build-container-image
+              template: build
+            arguments:
+              parameters:
+                - name: repo
+                  value: "{{inputs.parameters.repo}}"
+                - name: repo_ref
+                  value: "{{inputs.parameters.repo_ref}}"
+                - name: context_sub_path
+                  value: "{{inputs.parameters.second_context_sub_path}}"
+                - name: container_image
+                  value: "{{inputs.parameters.second_image}}"
+                - name: container_tag
+                  value: "{{inputs.parameters.second_image_tag}}"
+                - name: target
+                  value: "{{inputs.parameters.second_target}}"
+                - name: dockerfile
+                  value: "{{inputs.parameters.second_dockerfile}}"

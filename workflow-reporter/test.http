@@ -1,0 +1,94 @@
+
+GET http://localhost:5042/health
+
+###
+
+PUT http://localhost:5042/workflow/workflow1/maindb/ok
+
+###
+
+PUT http://localhost:5042/workflow/workflow1/maindb/error
+
+###
+
+POST http://localhost:5042/workflow/submit
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "Apps": [
+        "app-123",
+        "app-234",
+        "app-345"
+    ]
+}
+
+###
+
+POST http://localhost:5042/workflow/update
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "App": "app-123",
+    "Success": true
+}
+
+###
+
+POST http://localhost:5042/workflow/update
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "App": "app-234",
+    "Success": true
+}
+
+###
+
+POST http://localhost:5042/workflow/update
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "App": "app-345",
+    "Success": true
+}
+
+###
+
+POST http://localhost:5042/workflow/update
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "App": "app-345",
+    "Success": false
+}
+
+###
+
+
+
+POST http://wfreporter.local:80/workflow/submit
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "Apps": [
+        "app-123",
+        "app-234"
+    ]
+}
+
+###
+
+POST http://wfreporter.local:80/workflow/update
+Content-Type: application/json
+
+{
+    "WorkflowName": "workflow-1234",
+    "App": "app-123",
+    "Success": true
+}

@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: build-common
+spec:
+  serviceAccountName: workflow-sa
+  templates:
+    - name: getversion
+      inputs:
+        parameters: []
+      container:
+        image: busybox
+        command:
+            - "sh"
+            - "-c"
+            - |
+              echo "v$(date '+%Y%m%d%H%M%S')"
+
+    - name: sleeprandom
+      inputs:
+        parameters: []
+      script:
+        image: "mcr.microsoft.com/powershell:latest"
+        command:
+          - "pwsh"
+          - "-c"
+          - |
+            $millis = Get-Random -Minimum 100 -Maximum 5000
+            write-host "sleep for $millis"
+            start-sleep -milliseconds $millis

@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: build-container-image
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: build
+  templates:
+    - name: build
+      inputs:
+        parameters:
+          - name: repo
+          - name: container_image
+          - name: container_tag
+          - name: context_sub_path
+            value: "."
+          - name: repo_ref
+            value: refs/heads/main
+          - name: repo_commit_id
+            value: HEAD
+          - name: dockerfile
+            value: Dockerfile
+          - name: target
+            value: default
+          - name: reg_host
+            value: registry.pipeline.svc.cluster.local:5000
+      container:
+        image: gcr.io/kaniko-project/executor:debug
+        command: [/kaniko/executor]
+        args:
+          - --context=git://{{inputs.parameters.repo}}#{{inputs.parameters.repo_ref}}
+          - --context-sub-path={{inputs.parameters.context_sub_path}}
+          - --target={{inputs.parameters.target}}
+          - --build-arg=REGHOST={{inputs.parameters.reg_host}}/
+          - --dockerfile={{inputs.parameters.dockerfile}}
+          - --destination={{inputs.parameters.reg_host}}/{{inputs.parameters.container_image}}:{{inputs.parameters.container_tag}}
+          - --insecure
+          - --insecure-pull
+          - --insecure-registry={{inputs.parameters.reg_host}}
+          - --push-retry=5
+        env:
+          - name: GIT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-creds
+                key: token

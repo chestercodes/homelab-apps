@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+patchesStrategicMerge:
+- tunnel-urls.yaml
+
+patchesJson6902:
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: WorkflowTemplate
+      name: deploy-workflow-staging
+    patch: |-
+      - op: replace
+        path: /spec/templates/0/inputs/parameters/2/value
+        value: laptop
+
+  - target:
+      group: argoproj.io
+      version: v1alpha1
+      kind: WorkflowTemplate
+      name: promote
+    patch: |-
+      - op: replace
+        path: /spec/templates/0/script/command/4
+        value: laptop

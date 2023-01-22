@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: deploy-workflow-production
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: deploy
+  templates:
+
+    - name: deploy
+      inputs:
+        parameters:
+          - name: app_name
+          - name: code_image
+          - name: pipeline_image
+          - name: deploy_revision
+          - name: commit_message
+          - name: staging_version
+      steps:
+
+        - - name: push-new-manifest-file
+            templateRef:
+              name: promote
+              template: push-new-manifest-file
+            arguments:
+              parameters:
+                - name: envname
+                  value: "production"
+                - name: app_name
+                  value: "{{inputs.parameters.app_name}}"
+                - name: code_image
+                  value: "{{inputs.parameters.code_image}}"
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: deploy_revision
+                  value: "{{inputs.parameters.deploy_revision}}"
+                - name: commit_message
+                  value: "{{inputs.parameters.commit_message}}"
+                - name: staging_version
+                  value: "{{inputs.parameters.staging_version}}"
+
+        - - name: submit-to-workflow-reporter
+            templateRef:
+              name: deploy-common
+              template: submittoworkflowreporter
+            # only submit the app that changed as others might not sync and report
+            arguments:
+              parameters:
+                - name: workflow_name
+                  value: "{{workflow.name}}"
+                - name: workflow_apps
+                  value: '["{{inputs.parameters.app_name}}"]'
+
+        - - name: wait-completion
+            templateRef:
+              name: deploy-common
+              template: wait-completion
+            arguments:
+              parameters: []
+
+        - - name: run-maindb-migrations-step
+            templateRef:
+              name: deploy-common
+              template: run-maindb-migrations-production
+            arguments:
+              parameters:
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: envname
+                  value: "production"
+
+        - - name: run-functional-tests-step
+            templateRef:
+              name: deploy-common
+              template: run-functional-tests
+            arguments:
+              parameters:
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: envname
+                  value: "production"

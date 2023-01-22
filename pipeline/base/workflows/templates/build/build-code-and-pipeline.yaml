@@ -1,0 +1,124 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: build-code-and-pipeline
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: build
+  templates:
+    - name: getdeployworkflowargs
+      inputs:
+        parameters:
+          - name: commit_id
+          - name: commit_message
+          - name: code_image_name
+          - name: pipeline_image_name
+          - name: version
+          - name: app_name
+      container:
+        image: busybox
+        command:
+          - "sh"
+          - "-c"
+          - |
+            APPNAME="app_name={{inputs.parameters.app_name}}"
+            ENVNAME="envname={{inputs.parameters.version}}"
+            CODE_IMAGE="code_image={{inputs.parameters.code_image_name}}:{{inputs.parameters.version}}"
+            PIPELINE_IMAGE="pipeline_image={{inputs.parameters.pipeline_image_name}}:{{inputs.parameters.version}}"
+            DEPLOY_REVISION="deploy_revision={{inputs.parameters.commit_id}}"
+            COMMIT_MESSAGE="commit_message={{inputs.parameters.commit_message}}"
+            STAGING_VERSION="staging_version={{inputs.parameters.version}}"
+            echo "[ \"$APPNAME\", \"$ENVNAME\", \"$CODE_IMAGE\", \"$PIPELINE_IMAGE\", \"$DEPLOY_REVISION\", \"$COMMIT_MESSAGE\", \"$STAGING_VERSION\" ]"
+
+    - name: build
+      inputs:
+        parameters:
+          - name: commit_id
+          - name: commit_message
+          - name: app_name
+          - name: repo
+          - name: code_image_name
+          - name: pipeline_image_name
+          - name: repo_ref
+            value: refs/heads/main
+          - name: dockerfile
+            value: Dockerfile
+          - name: code_target
+            value: runtime
+          - name: pipeline_target
+            value: pipeline
+          - name: code_context_sub_path
+            value: app
+          - name: pipeline_context_sub_path
+            value: app
+      steps:
+        - - name: sleeprandom
+            templateRef:
+              name: build-common
+              template: sleeprandom
+
+        - - name: version
+            templateRef:
+              name: build-common
+              template: getversion
+
+        - - name: build-images
+            templateRef:
+              name: build-images
+              template: first-then-second
+            arguments:
+              parameters:
+                - name: repo
+                  value: "{{inputs.parameters.repo}}"
+                - name: first_image
+                  value: "{{inputs.parameters.code_image_name}}"
+                - name: second_image
+                  value: "{{inputs.parameters.pipeline_image_name}}"
+                - name: first_target
+                  value: "{{inputs.parameters.code_target}}"
+                - name: second_target
+                  value: "{{inputs.parameters.pipeline_target}}"
+                - name: first_image_tag
+                  value: "{{steps.version.outputs.result}}"
+                - name: second_image_tag
+                  value: "{{steps.version.outputs.result}}"
+                - name: first_context_sub_path
+                  value: "{{inputs.parameters.code_context_sub_path}}"
+                - name: second_context_sub_path
+                  value: "{{inputs.parameters.pipeline_context_sub_path}}"
+
+        - - name: deployworkflowargs
+            templateRef:
+              name: build-code-and-pipeline
+              template: getdeployworkflowargs
+            arguments:
+              parameters:
+                - name: commit_id
+                  value: "{{inputs.parameters.commit_id}}"
+                - name: commit_message
+                  value: "{{inputs.parameters.commit_message}}"
+                - name: code_image_name
+                  value: "{{inputs.parameters.code_image_name}}"
+                - name: pipeline_image_name
+                  value: "{{inputs.parameters.pipeline_image_name}}"
+                - name: version
+                  value: "{{steps.version.outputs.result}}"
+                - name: app_name
+                  value: "{{inputs.parameters.app_name}}"
+
+        - - name: trigger-deploy-workflow-staging
+            templateRef:
+              name: trigger-workflow
+              template: with-curl
+            arguments:
+              parameters:
+                - name: workflow_input_parameters
+                  value: "{{steps.deployworkflowargs.outputs.result}}"
+                - name: workflow_resource_kind
+                  value: WorkflowTemplate
+                - name: workflow_resource_name
+                  value: deploy-workflow-staging
+                - name: workflow_template_name
+                  value: deploy-workflow-staging
+                - name: entry_point
+                  value: code-and-pipeline

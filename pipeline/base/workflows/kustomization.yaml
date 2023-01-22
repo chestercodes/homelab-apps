@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- templates/build/build-code-and-pipeline.yaml
+- templates/build/build-common.yaml
+- templates/build/build-container-image.yaml
+- templates/build/build-just-pipeline.yaml
+- templates/build/build-images.yaml
+- templates/deploy/deploy-workflow-staging.yaml
+- templates/deploy/deploy-workflow-production.yaml
+- templates/deploy/deploy-common.yaml
+- templates/deploy/promote.yaml
+- templates/trigger-workflow.yaml
+- rbac.yaml
+namespace: pipeline

@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: github
+spec:
+  github:
+    homelab-apps:
+      webhook:
+        url: https://github.mypersonaltld.com
+    homelab-ping:
+      webhook:
+        url: https://github.mypersonaltld.com
+    homelab-maindb:
+      webhook:
+        url: https://github.mypersonaltld.com

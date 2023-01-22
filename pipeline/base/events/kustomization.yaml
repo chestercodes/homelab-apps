@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - bus.yaml
+  - sensors/homelab-apps-base-image-pipeline.yaml
+  - sensors/homelab-ping.yaml
+  - sensors/homelab-maindb-cluster.yaml
+  - sensors/homelab-maindb-exporter.yaml
+  - sensors/workflow-reporter.yaml
+  - sources.yaml
+namespace: pipeline

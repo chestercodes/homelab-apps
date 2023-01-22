@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: "{{ .Values.envname }}-homelabmaindb-exporter"
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: production
+  source:
+    path: "exporter"
+    repoURL: https://github.com/chestercodes/homelab-maindb.git
+    targetRevision: "{{ .Values.apps.homelabmaindbexporter.deploy.revision }}"
+    helm:
+      valueFiles:
+        - values.all.yaml
+        - values.base.yaml
+        - values.prod.yaml
+
+      values: |
+        is_production: true
+        deploying_workflow_name: {{ .Values.deploying_workflow_name }}
+        deploy_revision: {{ .Values.apps.homelabmaindbexporter.deploy.revision }}
+        app_name: homelabmaindbexporter
+
+  destination:
+    namespace: "{{ .Values.envname }}"
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

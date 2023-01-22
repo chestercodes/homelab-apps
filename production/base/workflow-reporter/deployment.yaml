@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow-reporter
+  namespace: pipeline
+  labels:
+    app: workflow-reporter
+spec:
+  selector:
+    matchLabels:
+      app: workflow-reporter
+  template:
+    metadata:
+      labels:
+        app: workflow-reporter
+    spec:
+      containers:
+      - name: workflow-reporter
+        image: registry.mypersonaltld.com/workflow-reporter:latest
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+        resources:
+          limits:
+            cpu: 100m
+            memory: 256Mi
+          requests:
+            cpu: 80m
+            memory: 128Mi
+

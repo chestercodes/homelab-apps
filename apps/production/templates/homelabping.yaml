@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: "{{ .Values.envname }}-homelabping"
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: production
+  source:
+    path: "deploy"
+    repoURL: https://github.com/chestercodes/homelab-ping.git
+    targetRevision: "{{ .Values.apps.homelabping.deploy.revision }}"
+    helm:
+      values: |
+        code_image: registry.mypersonaltld.com/{{ .Values.apps.homelabping.images.code.image }}
+        is_production: true
+        deploying_workflow_name: {{ .Values.deploying_workflow_name }}
+        deploy_revision: {{ .Values.apps.homelabping.deploy.revision }}
+        envname: {{ .Values.envname }}
+        image_tag: {{ .Values.apps.homelabping.images.code.image_tag }}
+        app_name: homelabping
+
+  destination:
+    namespace: "{{ .Values.envname }}"
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

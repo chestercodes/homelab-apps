@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: homelab-apps-base-image-pipeline-sensor
+spec:
+  template:
+    serviceAccountName: argo-events-sa
+  dependencies:
+    - name: github
+      eventSourceName: github
+      eventName: homelab-apps
+      filters:
+        data:
+          - path: "[body.commits.#.modified.#()#,body.commits.#.added.#()#,body.commits.#.removed.#()#]"
+            type: string
+            value:
+              - "base-images/pipeline/.*"
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/main"
+  entrypoint: trigger
+  triggers:
+    - template:
+        name: trigger
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: ci-homelab-apps-base-image-pipeline-
+              spec:
+                arguments:
+                  parameters:
+                    - name: repo
+                      value: github.com/chestercodes/homelab-apps
+                    - name: first_image
+                      value: base-images/sdk
+                    - name: second_image
+                      value: base-images/pipeline
+                    - name: first_context_sub_path
+                      value: base-images/base
+                    - name: second_context_sub_path
+                      value: base-images/pipeline
+                    - name: first_target
+                      value: base
+                    - name: second_target
+                      value: pipeline
+                    - name: first_image_tag
+                      value: "6.0"
+                    - name: second_image_tag
+                      value: "6.0"
+                workflowTemplateRef:
+                  name: build-images

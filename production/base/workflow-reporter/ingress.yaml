@@ -1,0 +1,21 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: workflow-reporter
+  namespace: pipeline
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`wfreporter.local`)
+      priority: 10
+      services:
+        - name: "workflow-reporter"
+          port: 80
+    - kind: Rule
+      match: Host(`wfreporter.home.arpa`)
+      priority: 10
+      services:
+        - name: "workflow-reporter"
+          port: 80

@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: promote
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: push-new-manifest-file
+  templates:
+
+    - name: push-new-manifest-file
+      inputs:
+        parameters:
+          - name: pipeline_image
+          - name: commit_message
+          - name: deploy_revision
+          - name: app_name
+          - name: envname
+          - name: code_image
+            value: "null"
+          - name: staging_version
+            value: "null"
+      script:
+        image: "registry.mypersonaltld.com/{{inputs.parameters.pipeline_image}}"
+        command:
+          - "pwsh"
+          - "-file"
+          - "/work/pushManifest.ps1"
+          - "-clusterType"
+          - "change_me"
+          - "-deployingWorkflowName"
+          - "{{workflow.name}}"
+          - "-pipelineImage"
+          - "{{inputs.parameters.pipeline_image}}"
+          - "-commitMessage"
+          - "{{inputs.parameters.commit_message}}"
+          - "-deployRevision"
+          - "{{inputs.parameters.deploy_revision}}"
+          - "-appName"
+          - "{{inputs.parameters.app_name}}"
+          - "-envname"
+          - "{{inputs.parameters.envname}}"
+          - "-codeImage"
+          - "{{inputs.parameters.code_image}}"
+          - "-stagingVersion"
+          - "{{inputs.parameters.staging_version}}"
+        env:
+          - name: GIT_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: github-creds
+                key: username
+          - name: GIT_NAME
+            valueFrom:
+              secretKeyRef:
+                name: github-creds
+                key: name
+          - name: GIT_EMAIL
+            valueFrom:
+              secretKeyRef:
+                name: github-creds
+                key: email
+          - name: GIT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: github-creds
+                key: token
+

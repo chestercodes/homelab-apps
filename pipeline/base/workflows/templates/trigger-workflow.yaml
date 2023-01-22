@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: trigger-workflow
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: with-curl
+  templates:
+    - name: with-curl
+      inputs:
+        parameters:
+          - name: entry_point
+          - name: workflow_input_parameters
+          #          value: '[ "code_image=valueone", "pipeline_image=valuetwo" ]'
+          - name: workflow_namespace
+            value: pipeline
+          - name: workflow_resource_kind
+            value: WorkflowTemplate
+          - name: workflow_resource_name
+            value: deploy-workflow-staging
+          - name: workflow_template_name
+            value: deploy-workflow-staging.deploy
+      script:
+        image: curlimages/curl:latest
+        command:
+          - sh
+        source: |
+          SUBMIT_URL="http://argo-workflows-server:2746/api/v1/workflows/{{inputs.parameters.workflow_namespace}}/submit"
+          POST_JSON='{"resourceKind": "{{inputs.parameters.workflow_resource_kind}}", "resourceName": "{{inputs.parameters.workflow_resource_name}}", "submitOptions": {"entryPoint": "{{inputs.parameters.entry_point}}", "parameters": {{inputs.parameters.workflow_input_parameters}}, "labels": "workflows.argoproj.io/workflow-template={{inputs.parameters.workflow_template_name}}"}}'
+          echo "Posting to $SUBMIT_URL"
+          echo "Posting data $POST_JSON"
+          curl -f --verbose -X POST $SUBMIT_URL -H "Content-Type: application/json" -d "$POST_JSON"
+
+        # # not needed, but might be in some cases
+        # source: >
+        #   curl -f -X POST http://argo-workflows-server:2746/api/v1/workflows/{{inputs.parameters.workflow_namespace}}/submit -H "Content-Type: application/json" -H "Authorization: Bearer $ARGO_TOKEN" -d '{"resourceKind": "{{inputs.parameters.workflow_resource_kind}}", "resourceName": "{{inputs.parameters.workflow_resource_name}}", "submitOptions": {"parameters": {{inputs.parameters.workflow_input_parameters}}, "labels": "workflows.argoproj.io/workflow-template={{inputs.parameters.workflow_template_name}}"}}'
+        # env:
+        # - name: ARGO_TOKEN
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: workflow-sa-token
+        #       key: token

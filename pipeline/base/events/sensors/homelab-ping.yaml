@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: homelab-ping-code-sensor
+spec:
+  template:
+    serviceAccountName: argo-events-sa
+  dependencies:
+    - name: github
+      eventSourceName: github
+      eventName: homelab-ping
+      filters:
+        data:
+          - path: "body.ref"
+            type: string
+            value:
+              - "refs/heads/main"
+  entrypoint: trigger
+  triggers:
+    - template:
+        name: trigger
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: ci-homelabping-
+              spec:
+                arguments:
+                  parameters:
+                    - name: commit_id
+                      value: replace_me
+                    - name: commit_message
+                      value: replace_me
+                    - name: app_name
+                      value: homelabping
+                    - name: repo
+                      value: github.com/chestercodes/homelab-ping
+                    - name: code_image_name
+                      value: apps/homelabping
+                    - name: pipeline_image_name
+                      value: pipeline/homelabping
+                    - name: code_context_sub_path
+                      value: app
+                    - name: pipeline_context_sub_path
+                      value: app
+                workflowTemplateRef:
+                  name: build-code-and-pipeline
+          parameters:
+            - src:
+                dependencyName: github
+                dataKey: body.head_commit.id
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: github
+                dataKey: body.head_commit.message
+              dest: spec.arguments.parameters.1.value

@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: "{{ .Values.envname }}-homelabmaindb-cluster"
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: production
+  source:
+    path: "cluster"
+    repoURL: https://github.com/chestercodes/homelab-maindb.git
+    targetRevision: "{{ .Values.apps.homelabmaindbcluster.deploy.revision }}"
+    helm:
+      valueFiles:
+        - values.all.yaml
+        - values.base.yaml
+        - values.persistence.yaml
+        - values.{{ .Values.clustertype }}.yaml
+      values: |
+        is_production: true
+        deploying_workflow_name: {{ .Values.deploying_workflow_name }}
+        deploy_revision: {{ .Values.apps.homelabmaindbcluster.deploy.revision }}
+        app_name: homelabmaindbcluster
+  destination:
+    namespace: "{{ .Values.envname }}"
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

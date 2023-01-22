@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: github
+spec:
+  service:
+    ports:
+      - port: 12000
+        targetPort: 12000
+  github:
+    homelab-apps:
+      owner: chestercodes
+      repository: homelab-apps
+      webhook:
+        endpoint: /homelab-apps
+        port: "12000"
+        method: POST
+        url: change_me
+      events:
+        - "*"
+      apiToken:
+        name: github-creds
+        key: token
+      webhookSecret:
+        name: github-creds
+        key: webhookSecret
+      active: true
+      contentType: json
+    homelab-ping:
+      owner: chestercodes
+      repository: homelab-ping
+      webhook:
+        endpoint: /homelab-ping
+        port: "12000"
+        method: POST
+        url: change_me
+      events:
+        - "*"
+      apiToken:
+        name: github-creds
+        key: token
+      webhookSecret:
+        name: github-creds
+        key: webhookSecret
+      active: true
+      contentType: json
+    homelab-maindb:
+      owner: chestercodes
+      repository: homelab-maindb
+      webhook:
+        endpoint: /homelab-maindb
+        port: "12000"
+        method: POST
+        url: change_me
+      events:
+        - "*"
+      apiToken:
+        name: github-creds
+        key: token
+      webhookSecret:
+        name: github-creds
+        key: webhookSecret
+      active: true
+      contentType: json

@@ -1,0 +1,216 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: deploy-workflow-staging
+spec:
+  serviceAccountName: workflow-sa
+  entrypoint: code-and-pipeline
+  templates:
+    - name: code-and-pipeline
+      inputs:
+        parameters:
+          - name: envname
+          - name: app_name
+          - name: code_image
+          - name: pipeline_image
+          - name: deploy_revision
+          - name: commit_message
+          - name: staging_version
+      steps:
+        - - name: push-new-manifest-file
+            templateRef:
+              name: promote
+              template: push-new-manifest-file
+            arguments:
+              parameters:
+                - name: envname
+                  value: "{{inputs.parameters.envname}}"
+                - name: app_name
+                  value: "{{inputs.parameters.app_name}}"
+                - name: code_image
+                  value: "{{inputs.parameters.code_image}}"
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: deploy_revision
+                  value: "{{inputs.parameters.deploy_revision}}"
+                - name: commit_message
+                  value: "{{inputs.parameters.commit_message}}"
+
+        - - name: submit-to-workflow-reporter
+            templateRef:
+              name: deploy-common
+              template: submittoworkflowreporter
+            arguments:
+              parameters:
+                - name: workflow_name
+                  value: "{{workflow.name}}"
+                - name: workflow_apps
+                  value: '["homelabping", "homelabmaindbcluster", "homelabmaindbexporter"]'
+
+        - - name: wait-completion
+            templateRef:
+              name: deploy-common
+              template: wait-completion
+            arguments:
+              parameters: []
+
+        - - name: run-maindb-migrations-step
+            templateRef:
+              name: deploy-common
+              template: run-maindb-migrations
+            arguments:
+              parameters:
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: envname
+                  value: "{{inputs.parameters.envname}}"
+
+        - - name: run-functional-tests-step
+            templateRef:
+              name: deploy-common
+              template: run-functional-tests
+            arguments:
+              parameters:
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: envname
+                  value: "{{inputs.parameters.envname}}"
+
+        - - name: deployworkflowargs
+            templateRef:
+              name: deploy-common
+              template: getdeployworkflowargs
+            arguments:
+              parameters:
+                - name: commit_id
+                  value: "{{inputs.parameters.deploy_revision}}"
+                - name: commit_message
+                  value: "{{inputs.parameters.commit_message}}"
+                - name: code_image
+                  value: "{{inputs.parameters.code_image}}"
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: app_name
+                  value: "{{inputs.parameters.app_name}}"
+                - name: staging_version
+                  value: "{{inputs.parameters.staging_version}}"
+
+        - - name: trigger-deploy-workflow-production
+            templateRef:
+              name: trigger-workflow
+              template: with-curl
+            arguments:
+              parameters:
+                - name: workflow_input_parameters
+                  value: "{{steps.deployworkflowargs.outputs.result}}"
+                - name: workflow_resource_kind
+                  value: WorkflowTemplate
+                - name: workflow_resource_name
+                  value: deploy-workflow-production
+                - name: workflow_template_name
+                  value: deploy-workflow-production
+                - name: entry_point
+                  value: deploy
+
+    - name: just-pipeline
+      inputs:
+        parameters:
+          - name: app_name
+          - name: envname
+          - name: pipeline_image
+          - name: deploy_revision
+          - name: commit_message
+          - name: staging_version
+      steps:
+        - - name: push-new-manifest-file
+            templateRef:
+              name: promote
+              template: push-new-manifest-file
+            arguments:
+              parameters:
+                - name: envname
+                  value: "{{inputs.parameters.envname}}"
+                - name: app_name
+                  value: "{{inputs.parameters.app_name}}"
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: deploy_revision
+                  value: "{{inputs.parameters.deploy_revision}}"
+                - name: commit_message
+                  value: "{{inputs.parameters.commit_message}}"
+
+        - - name: submit-to-workflow-reporter
+            templateRef:
+              name: deploy-common
+              template: submittoworkflowreporter
+            arguments:
+              parameters:
+                - name: workflow_name
+                  value: "{{workflow.name}}"
+                - name: workflow_apps
+                  value: '["homelabping", "homelabmaindbcluster", "homelabmaindbexporter"]'
+
+        - - name: wait-completion
+            templateRef:
+              name: deploy-common
+              template: wait-completion
+            arguments:
+              parameters: []
+
+        - - name: run-maindb-migrations-step
+            templateRef:
+              name: deploy-common
+              template: run-maindb-migrations
+            arguments:
+              parameters:
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: envname
+                  value: "{{inputs.parameters.envname}}"
+
+        - - name: run-functional-tests-step
+            templateRef:
+              name: deploy-common
+              template: run-functional-tests
+            arguments:
+              parameters:
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: envname
+                  value: "{{inputs.parameters.envname}}"
+
+        - - name: deployworkflowargs
+            templateRef:
+              name: deploy-common
+              template: getdeployworkflowargs
+            arguments:
+              parameters:
+                - name: commit_id
+                  value: "{{inputs.parameters.deploy_revision}}"
+                - name: commit_message
+                  value: "{{inputs.parameters.commit_message}}"
+                - name: code_image
+                  value: "null"
+                - name: pipeline_image
+                  value: "{{inputs.parameters.pipeline_image}}"
+                - name: app_name
+                  value: "{{inputs.parameters.app_name}}"
+                - name: staging_version
+                  value: "{{inputs.parameters.staging_version}}"
+
+        - - name: trigger-deploy-workflow-production
+            templateRef:
+              name: trigger-workflow
+              template: with-curl
+            arguments:
+              parameters:
+                - name: workflow_input_parameters
+                  value: "{{steps.deployworkflowargs.outputs.result}}"
+                - name: workflow_resource_kind
+                  value: WorkflowTemplate
+                - name: workflow_resource_name
+                  value: deploy-workflow-production
+                - name: workflow_template_name
+                  value: deploy-workflow-production
+                - name: entry_point
+                  value: deploy

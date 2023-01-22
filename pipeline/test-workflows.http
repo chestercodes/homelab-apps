@@ -1,0 +1,118 @@
+# some of these might not work...
+
+POST http://argowf.local/api/v1/workflows/pipeline/submit: HTTP/1.1
+content-type: application/json
+Authorization: Bearer XXX.XXX.XXX
+
+{
+  "resourceKind": "WorkflowTemplate",
+  "resourceName": "build-code-and-pipeline",
+  "submitOptions": {
+    "entryPoint": "build",
+    "labels": "workflows.argoproj.io/workflow-template=build-code-and-pipeline",
+    "parameters": [
+      "commit_id=HEAD",
+      "commit_message=Manually triggered",
+      "app_name=homelabping",
+      "repo=github.com/chestercodes/homelab-ping",
+      "code_image_name=apps/homelabping",
+      "pipeline_image_name=pipeline/homelabping",
+      "code_context_sub_path=app",
+      "pipeline_context_sub_path=app"
+    ]
+  }
+}
+
+###
+
+POST http://argowf.local/api/v1/workflows/pipeline/submit: HTTP/1.1
+content-type: application/json
+Authorization: Bearer XXX.XXX.XXX
+
+{
+  "resourceKind": "WorkflowTemplate",
+  "resourceName": "deploy-workflow-staging",
+  "submitOptions": {
+    "entryPoint": "just-pipeline",
+    "labels": "workflows.argoproj.io/workflow-template=deploy-workflow-staging",
+    "parameters": [
+      "app_name=homelabmaindbcluster",
+      "envname=v20230111200410",
+      "pipeline_image=pipeline/homelabmaindbcluster:v20230111200410",
+      "deploy_revision=c3330f5e0cacbccf1ce9597d4b3df3ae26f4aaa7",
+      "commit_message=trigger",
+      "staging_version=v20230111200410"
+    ]
+  }
+}
+
+###
+
+POST http://argowf.local/api/v1/workflows/pipeline/submit: HTTP/1.1
+content-type: application/json
+Authorization: Bearer XXX.XXX.XXX
+
+{
+  "resourceKind": "WorkflowTemplate",
+  "resourceName": "deploy-workflow-staging",
+  "submitOptions": {
+    "entryPoint": "code-and-pipeline",
+    "labels": "workflows.argoproj.io/workflow-template=deploy-workflow-staging",
+    "parameters": [
+      "app_name=homelabping",
+      "envname=v20230116130825",
+      "code_image=apps/homelabping:v20230116130825",
+      "pipeline_image=pipeline/homelabping:v20230116130825",
+      "deploy_revision=HEAD",
+      "commit_message=trigger",
+      "staging_version=v20230116130825"
+    ]
+  }
+}
+
+
+###
+
+POST http://argowf.local/api/v1/workflows/pipeline/submit: HTTP/1.1
+content-type: application/json
+Authorization: Bearer XXX.XXX.XXX
+
+{
+  "resourceKind": "WorkflowTemplate",
+  "resourceName": "deploy-workflow-production",
+  "submitOptions": {
+    "entryPoint": "deploy",
+    "labels": "workflows.argoproj.io/workflow-template=deploy-workflow-staging",
+    "parameters": [
+      "app_name=homelabping",
+      "code_image=apps/homelabping:v20230116193657",
+      "pipeline_image=pipeline/homelabping:v20230116193657",
+      "deploy_revision=HEAD",
+      "commit_message=trigger",
+      "staging_version=v20230116193657"
+    ]
+  }
+}
+
+###
+
+POST http://argowf.local/api/v1/workflows/pipeline/submit: HTTP/1.1
+content-type: application/json
+Authorization: Bearer XXX.XXX.XXX
+
+{
+  "resourceKind": "WorkflowTemplate",
+  "resourceName": "test",
+  "submitOptions": {
+    "labels": "workflows.argoproj.io/workflow-template=test"
+  }
+}
+
+###
+
+PUT http://argowf.local/api/v1/workflows/pipeline/deploy-workflow-dt5b8/resume: HTTP/1.1
+content-type: application/json
+Authorization: Bearer XXX.XXX.XXX
+
+{
+}
